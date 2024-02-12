@@ -1,0 +1,23 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Location",
+    "description": "The location according to hafas types",
+    "type": "object",
+    "properties": {
+        "type": {
+            "description": "The unique identifier for a product",
+            "type": "string",
+            "enum": [
+                "station"
+            ]
+        },
+        "id": {
+            "description": "The Id of the location to use in other requests",
+            "type": "string"
+        },
+        "name": {
+            "description": "The name of the station",
+            "type": "string"
+        }
+    }
+}

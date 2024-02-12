@@ -1,0 +1,17 @@
+{
+  "domain": "db_transport_rest",
+  "name": "Deutsche Bahn Journey (db.transport.rest)",
+  "codeowners": [
+    "@ongy"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://www.home-assistant.io/integrations/db_transport_rest",
+  "homekit": {},
+  "iot_class": "cloud_polling",
+  "requirements": [
+    "jsonschema"
+  ],
+  "ssdp": [],
+  "zeroconf": []
+}
