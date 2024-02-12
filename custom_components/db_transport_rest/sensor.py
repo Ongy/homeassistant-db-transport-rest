@@ -90,7 +90,7 @@ async def async_setup_entry(
                 index=index,
             )
             for description in SENSOR_TYPES
-            for index in [0, 1, 2]
+            for index in (0, 1, 2)
         ]
     )
 
