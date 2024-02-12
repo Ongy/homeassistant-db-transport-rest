@@ -1,18 +1,16 @@
-"""DataUpdateCoordinator for the Trafikverket Train integration."""
+"""DataUpdateCoordinator for the DB Journey (db.transport.rest) integration."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 import json
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.util import dt as dt_util
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
 
@@ -21,28 +19,15 @@ TIME_BETWEEN_UPDATES = timedelta(minutes=5)
 
 
 @dataclass
-class TrainData:
-    """Dataclass for Trafikverket Train data."""
+class JourneyData:
+    """Dataclass for DB journey data."""
 
     departure_time: datetime | None
     travel_time: timedelta | None
     num_legs: int | None
 
 
-#    departure_state: str
-#    cancelled: bool
-#    delayed_time: int | None
-#    planned_time: datetime | None
-#    estimated_time: datetime | None
-#    actual_time: datetime | None
-#    other_info: str | None
-#    deviation: str | None
-#    product_filter: str | None
-#    departure_time_next: datetime | None
-#    departure_time_next_next: datetime | None
-
-
-def _train_data_from_journey(journey) -> TrainData:
+def _journey_data_from_journey(journey) -> JourneyData:
     legs = journey["legs"]
     first = legs[0]
     last = legs[-1]
@@ -50,24 +35,15 @@ def _train_data_from_journey(journey) -> TrainData:
     departure = datetime.fromisoformat(first["departure"])
     arrival = datetime.fromisoformat(last["arrival"])
 
-    return TrainData(
+    return JourneyData(
         departure_time=departure,
         travel_time=arrival - departure,
         num_legs=len(legs),
-        #                delayed_time=delay_time.seconds if delay_time else None,
-        #                planned_time=_get_as_utc(state.advertised_time_at_location),
-        #                estimated_time=_get_as_utc(state.estimated_time_at_location),
-        #                actual_time=_get_as_utc(state.time_at_location),
-        #                other_info=_get_as_joined(state.other_information),
-        #                deviation=_get_as_joined(state.deviations),
-        #                product_filter=self._filter_product,
-        #                departure_time_next=_get_as_utc(depart_next),
-        #                departure_time_next_next=_get_as_utc(depart_next_next),
     )
 
 
-class DBDataUpdateCoordinator(DataUpdateCoordinator[list[TrainData]]):
-    """A Trafikverket Data Update Coordinator."""
+class DBDataUpdateCoordinator(DataUpdateCoordinator[list[JourneyData]]):
+    """A DB Journey Data Update Coordinator."""
 
     def __init__(
         self,
@@ -76,7 +52,7 @@ class DBDataUpdateCoordinator(DataUpdateCoordinator[list[TrainData]]):
         to_station: str,
         from_station: str,
     ) -> None:
-        """Initialize the Trafikverket coordinator."""
+        """Initialize the DB Journey coordinator."""
         super().__init__(
             hass,
             _LOGGER,
@@ -88,8 +64,8 @@ class DBDataUpdateCoordinator(DataUpdateCoordinator[list[TrainData]]):
         self.from_station: str = from_station
         self.to_station: str = to_station
 
-    async def _async_update_data(self) -> list[TrainData]:
-        """Fetch data from Trafikverket."""
+    async def _async_update_data(self) -> list[JourneyData]:
+        """Fetch data from db.transport.rest."""
         async with self._session.get(
             f"{self.host}/journeys",
             params={
@@ -101,4 +77,4 @@ class DBDataUpdateCoordinator(DataUpdateCoordinator[list[TrainData]]):
         ) as resp:
             val = json.loads(await resp.text())
 
-            return [_train_data_from_journey(journey) for journey in val["journeys"]]
+            return [_journey_data_from_journey(journey) for journey in val["journeys"]]

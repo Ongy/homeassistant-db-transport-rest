@@ -1,11 +1,10 @@
-"""Train information for departures and delays, provided by Trafikverket."""
+"""Train information for departures and delays, provided by db.transport.rest."""
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 import json
-from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -13,7 +12,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_SOURCE, CONF_TARGET, UnitOfTime
+from homeassistant.const import CONF_HOST, CONF_SOURCE, CONF_TARGET
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
@@ -22,34 +21,32 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import DBDataUpdateCoordinator, TrainData
+from .coordinator import DBDataUpdateCoordinator, JourneyData
 
 ATTR_PRODUCT_FILTER = "product_filter"
 
 
 @dataclass(frozen=True)
-class TrafikverketRequiredKeysMixin:
+class DBRequiredKeysMixin:
     """Mixin for required keys."""
 
-    value_fn: Callable[[TrainData], StateType | datetime]
+    value_fn: Callable[[JourneyData], StateType | datetime]
 
 
 @dataclass(frozen=True)
-class TrafikverketSensorEntityDescription(
-    SensorEntityDescription, TrafikverketRequiredKeysMixin
-):
-    """Describes Trafikverket sensor entity."""
+class DBSensorEntityDescription(SensorEntityDescription, DBRequiredKeysMixin):
+    """Describes DB Journey sensor entity."""
 
 
-SENSOR_TYPES: tuple[TrafikverketSensorEntityDescription, ...] = (
-    TrafikverketSensorEntityDescription(
+SENSOR_TYPES: tuple[DBSensorEntityDescription, ...] = (
+    DBSensorEntityDescription(
         key="departure_time",
         translation_key="departure_time",
         icon="mdi:clock",
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda data: data.departure_time,
     ),
-    TrafikverketSensorEntityDescription(
+    DBSensorEntityDescription(
         key="travel_time",
         translation_key="travel_time",
         icon="mdi:clock",
@@ -57,7 +54,7 @@ SENSOR_TYPES: tuple[TrafikverketSensorEntityDescription, ...] = (
         native_unit_of_measurement="s",
         value_fn=lambda data: data.travel_time.total_seconds(),
     ),
-    TrafikverketSensorEntityDescription(
+    DBSensorEntityDescription(
         key="num_legs",
         translation_key="num_legs",
         device_class=SensorDeviceClass.DATA_SIZE,
@@ -69,7 +66,7 @@ SENSOR_TYPES: tuple[TrafikverketSensorEntityDescription, ...] = (
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up the Trafikverket sensor entry."""
+    """Set up the DB Journey sensor entry."""
 
     coordinator: DBDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     http_session = async_get_clientsession(hass)
@@ -85,7 +82,7 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            TrainSensor(
+            JourneySensor(
                 coordinator,
                 f"{from_name} => {to_name}",
                 entry.entry_id,
@@ -98,10 +95,10 @@ async def async_setup_entry(
     )
 
 
-class TrainSensor(CoordinatorEntity[DBDataUpdateCoordinator], SensorEntity):
-    """Contains data about a train depature."""
+class JourneySensor(CoordinatorEntity[DBDataUpdateCoordinator], SensorEntity):
+    """Contains data about a journey."""
 
-    entity_description: TrafikverketSensorEntityDescription
+    entity_description: DBSensorEntityDescription
     _attr_has_entity_name = True
 
     def __init__(
@@ -109,7 +106,7 @@ class TrainSensor(CoordinatorEntity[DBDataUpdateCoordinator], SensorEntity):
         coordinator: DBDataUpdateCoordinator,
         name: str,
         entry_id: str,
-        entity_description: TrafikverketSensorEntityDescription,
+        entity_description: DBSensorEntityDescription,
         index: int = 0,
     ) -> None:
         """Initialize the sensor."""
@@ -140,11 +137,3 @@ class TrainSensor(CoordinatorEntity[DBDataUpdateCoordinator], SensorEntity):
     def _handle_coordinator_update(self) -> None:
         self._update_attr()
         return super()._handle_coordinator_update()
-
-
-#     @property
-#     def extra_state_attributes(self) -> Mapping[str, Any] | None:
-#         """Return additional attributes for Trafikverket Train sensor."""
-#         if self.coordinator.data.product_filter:
-#             return {ATTR_PRODUCT_FILTER: self.coordinator.data.product_filter}
-#         return None
