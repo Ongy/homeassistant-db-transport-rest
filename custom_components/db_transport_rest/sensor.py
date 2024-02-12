@@ -86,9 +86,14 @@ async def async_setup_entry(
     async_add_entities(
         [
             TrainSensor(
-                coordinator, f"{from_name} => {to_name}", entry.entry_id, description
+                coordinator,
+                f"{from_name} => {to_name}",
+                entry.entry_id,
+                description,
+                index=index,
             )
             for description in SENSOR_TYPES
+            for index in [0, 1, 2]
         ]
     )
 
@@ -105,16 +110,22 @@ class TrainSensor(CoordinatorEntity[DBDataUpdateCoordinator], SensorEntity):
         name: str,
         entry_id: str,
         entity_description: TrafikverketSensorEntityDescription,
+        index: int = 0,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
+        if index > 0:
+            entry_id = f"{entry_id}-{index}"
+            name = f"{name}+{index}"
+
+        self._index = index
         self._attr_unique_id = f"{entry_id}-{entity_description.key}"
         self.entity_description = entity_description
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, entry_id)},
             name=name,
-            # configuration_url="https://api.trafikinfo.trafikverket.se/",
+            configuration_url="https://v6.db.transport.rest/",
         )
         self._update_attr()
 
@@ -122,7 +133,7 @@ class TrainSensor(CoordinatorEntity[DBDataUpdateCoordinator], SensorEntity):
     def _update_attr(self) -> None:
         """Update _attr."""
         self._attr_native_value = self.entity_description.value_fn(
-            self.coordinator.data
+            self.coordinator.data[self._index]
         )
 
     @callback

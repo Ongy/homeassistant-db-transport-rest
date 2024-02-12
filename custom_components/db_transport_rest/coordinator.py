@@ -42,7 +42,31 @@ class TrainData:
 #    departure_time_next_next: datetime | None
 
 
-class DBDataUpdateCoordinator(DataUpdateCoordinator[TrainData]):
+def _train_data_from_journey(journey) -> TrainData:
+    legs = journey["legs"]
+    first = legs[0]
+    last = legs[-1]
+
+    departure = datetime.fromisoformat(first["departure"])
+    arrival = datetime.fromisoformat(last["arrival"])
+
+    return TrainData(
+        departure_time=departure,
+        travel_time=arrival - departure,
+        num_legs=len(legs),
+        #                delayed_time=delay_time.seconds if delay_time else None,
+        #                planned_time=_get_as_utc(state.advertised_time_at_location),
+        #                estimated_time=_get_as_utc(state.estimated_time_at_location),
+        #                actual_time=_get_as_utc(state.time_at_location),
+        #                other_info=_get_as_joined(state.other_information),
+        #                deviation=_get_as_joined(state.deviations),
+        #                product_filter=self._filter_product,
+        #                departure_time_next=_get_as_utc(depart_next),
+        #                departure_time_next_next=_get_as_utc(depart_next_next),
+    )
+
+
+class DBDataUpdateCoordinator(DataUpdateCoordinator[list[TrainData]]):
     """A Trafikverket Data Update Coordinator."""
 
     def __init__(
@@ -64,7 +88,7 @@ class DBDataUpdateCoordinator(DataUpdateCoordinator[TrainData]):
         self.from_station: str = from_station
         self.to_station: str = to_station
 
-    async def _async_update_data(self) -> TrainData:
+    async def _async_update_data(self) -> list[TrainData]:
         """Fetch data from Trafikverket."""
         async with self._session.get(
             f"{self.host}/journeys",
@@ -77,25 +101,4 @@ class DBDataUpdateCoordinator(DataUpdateCoordinator[TrainData]):
         ) as resp:
             val = json.loads(await resp.text())
 
-            journey = val["journeys"][0]
-            legs = journey["legs"]
-            first = legs[0]
-            last = legs[-1]
-
-            departure = datetime.fromisoformat(first["departure"])
-            arrival = datetime.fromisoformat(last["arrival"])
-
-            return TrainData(
-                departure_time=departure,
-                travel_time=arrival - departure,
-                num_legs=len(legs),
-                #                delayed_time=delay_time.seconds if delay_time else None,
-                #                planned_time=_get_as_utc(state.advertised_time_at_location),
-                #                estimated_time=_get_as_utc(state.estimated_time_at_location),
-                #                actual_time=_get_as_utc(state.time_at_location),
-                #                other_info=_get_as_joined(state.other_information),
-                #                deviation=_get_as_joined(state.deviations),
-                #                product_filter=self._filter_product,
-                #                departure_time_next=_get_as_utc(depart_next),
-                #                departure_time_next_next=_get_as_utc(depart_next_next),
-            )
+            return [_train_data_from_journey(journey) for journey in val["journeys"]]
