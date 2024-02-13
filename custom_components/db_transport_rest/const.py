@@ -2,3 +2,5 @@
 
 DOMAIN = "db_transport_rest"
 PLATFORMS = ["sensor"]
+CONF_FROM = "from"
+CONF_TO = "to"

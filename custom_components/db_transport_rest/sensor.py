@@ -12,7 +12,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_SOURCE, CONF_TARGET
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
@@ -20,7 +20,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import CONF_FROM, CONF_TO, DOMAIN
 from .coordinator import DBDataUpdateCoordinator, JourneyData
 
 ATTR_PRODUCT_FILTER = "product_filter"
@@ -71,8 +71,8 @@ async def async_setup_entry(
     coordinator: DBDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     http_session = async_get_clientsession(hass)
     host = entry.data[CONF_HOST]
-    from_station = entry.data[CONF_SOURCE]
-    to_station = entry.data[CONF_TARGET]
+    from_station = entry.data[CONF_FROM]
+    to_station = entry.data[CONF_TO]
 
     async with http_session.get(f"{host}/stations/{from_station}") as resp:
         from_name = json.loads(await resp.text())["name"]

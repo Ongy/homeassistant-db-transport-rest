@@ -12,11 +12,11 @@ import jsonschema
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_SOURCE, CONF_TARGET
+from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN
+from .const import CONF_FROM, CONF_TO, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,6 +64,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Deutsche Bahn Journey (db.transport.rest)."""
 
     VERSION = 1
+    MINOR_VERSION = 2
     stations = []
     host = None
 
@@ -96,27 +97,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             src = list(
                 filter(
-                    lambda s: s["name"] == user_input[CONF_SOURCE],
+                    lambda s: s["name"] == user_input[CONF_FROM],
                     self.stations.values(),
                 )
             )[0]["id"]
             dst = list(
                 filter(
-                    lambda s: s["name"] == user_input[CONF_TARGET],
+                    lambda s: s["name"] == user_input[CONF_TO],
                     self.stations.values(),
                 )
             )[0]["id"]
             return self.async_create_entry(
-                title=f"{user_input[CONF_SOURCE]} <> {user_input[CONF_TARGET]}",
-                data={CONF_HOST: self.host, CONF_SOURCE: src, CONF_TARGET: dst},
+                title=f"{user_input[CONF_FROM]} <> {user_input[CONF_TO]}",
+                data={CONF_HOST: self.host, CONF_FROM: src, CONF_TO: dst},
             )
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_SOURCE): vol.In(
+                vol.Required(CONF_FROM): vol.In(
                     [val["name"] for val in self.stations.values()]
                 ),
-                vol.Required(CONF_TARGET): vol.In(
+                vol.Required(CONF_TO): vol.In(
                     [val["name"] for val in self.stations.values()]
                 ),
             }
