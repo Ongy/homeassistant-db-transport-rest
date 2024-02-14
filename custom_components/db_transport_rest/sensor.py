@@ -126,6 +126,11 @@ class JourneySensor(CoordinatorEntity[DBDataUpdateCoordinator], SensorEntity):
         )
         self._update_attr()
 
+    @property
+    def available(self) -> bool:
+        """Set unavailable when the coordinator's data isn't useful."""
+        return self.coordinator.last_update_success
+
     @callback
     def _update_attr(self) -> None:
         """Update _attr."""

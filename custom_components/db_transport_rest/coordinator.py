@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from http import HTTPStatus
 import json
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import IntegrationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -73,8 +75,17 @@ class DBDataUpdateCoordinator(DataUpdateCoordinator[list[JourneyData]]):
                 "to": self.to_station,
                 "nationalExpress": "false",
                 "national": "true",
+                "results": "3",
             },
         ) as resp:
-            val = json.loads(await resp.text())
+            self.last_update_success = False
+            if resp.status != HTTPStatus.OK:
+                raise IntegrationError(
+                    f"{self.host} seems to be unavailable ATM: {resp.status}"
+                )
 
-            return [_journey_data_from_journey(journey) for journey in val["journeys"]]
+            val = json.loads(await resp.text())
+            ret = [_journey_data_from_journey(journey) for journey in val["journeys"]]
+
+            self.last_update_success = True
+            return ret
