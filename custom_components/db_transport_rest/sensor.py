@@ -57,7 +57,6 @@ SENSOR_TYPES: tuple[DBSensorEntityDescription, ...] = (
     DBSensorEntityDescription(
         key="num_legs",
         translation_key="num_legs",
-        device_class=SensorDeviceClass.DATA_SIZE,
         value_fn=lambda data: data.num_legs,
     ),
 )
